@@ -7,6 +7,7 @@ Parameters:
     Default: "jusi-micro-project"
     MinLength: 3
     MaxLength: 63
+    
 
 Resources:
   S3BucketLogging:
@@ -20,27 +21,31 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
-      #VersioningConfiguration:
-      #  Status: Enabled
+      VersioningConfiguration:
+        Status: Enabled
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+    
 
   S3BucketWebHelloWorld:
     Type: AWS::S3::Bucket
     DeletionPolicy: Delete
     Properties:
       BucketName: !Ref S3BucketNameWeb
-      AccessControl: PublicRead
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
-      VersioningConfiguration:
-        Status: Enabled
-      #LoggingConfiguration:
-      #  DestinationBucketName: !Ref S3BucketLogging
-      #  LogFilePrefix: WebApp
+      
+      #VersioningConfiguration:
+      #  Status: Enabled
 
 
   S3HostingBucketPolicy:
@@ -66,9 +71,9 @@ Resources:
     Properties:
       DistributionConfig:
         CustomErrorResponses:
-          - ErrorCode: 403 
+          - ErrorCode: 403
             ResponseCode: 404
-            ResponsePagePath: 'error.html'
+            ResponsePagePath: "/error.html"
         DefaultCacheBehavior:
           AllowedMethods:
             - GET
@@ -77,7 +82,7 @@ Resources:
             - GET
             - HEAD
           Compress: true
-          # TTL very low for my test
+          # TTL very low for testing purpose
           DefaultTTL: 10 # in seconds
           ForwardedValues:
             Cookies:
@@ -90,6 +95,9 @@ Resources:
         # This DefaultRootObject configuration is not enough.
         DefaultRootObject: 'index.html'
         Comment: "CDN for Micro-WebApp"
+        Logging: 
+          Bucket: !Sub '${S3BucketLogging}.s3.amazonaws.com'
+          Prefix: "cloudfront-webapp"
         Enabled: true
         HttpVersion: http2
         Origins:
@@ -97,6 +105,7 @@ Resources:
             DomainName: !GetAtt S3BucketWebHelloWorld.DomainName
             S3OriginConfig:
               OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
+        # less expensive, serve only US, Canada, Mexico, EU and Israel     
         PriceClass: PriceClass_100
         # Use of Iso Code to restrict request from Italy and Malta only
         # https://www.iso.org/obp/ui/#search/code/
@@ -107,17 +116,16 @@ Resources:
             - IT
             - MT
 
-
+  # Cloud Origin Access Identity to only give access to CloudFront to access bucket       
   CloudFrontOriginAccessIdentity:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
       CloudFrontOriginAccessIdentityConfig:
         Comment: !Ref S3BucketWebHelloWorld
   
-
 Outputs:
   WebSiteUrlWebApp:
-    Description: 'URL for website hosted on S3'
+    Description: 'URL for website hosted on S3 - to test permission - only access from Origin'
     Value: !GetAtt S3BucketWebHelloWorld.WebsiteURL
 
   LoggingBucketName:
@@ -127,3 +135,7 @@ Outputs:
   DomainNameBucket:
     Description: 'Domain Name of the bucket'
     Value: !GetAtt S3BucketWebHelloWorld.DomainName
+  
+  DomainNameCloudFront:
+    Description: 'Domain Name used by CloudFront'
+    Value: !GetAtt CloudFrontDistributionWebApp.DomainName
