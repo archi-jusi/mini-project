@@ -25,11 +25,10 @@ Resources:
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
-            SSEAlgorithm: AES256
+              SSEAlgorithm: AES256
 
   S3BucketWebHelloWorld:
     Type: AWS::S3::Bucket
-    Description: Amazon Bucket to Host our website
     DeletionPolicy: Delete
     Properties:
       BucketName: !Ref S3BucketNameWeb
@@ -39,9 +38,10 @@ Resources:
         ErrorDocument: error.html
       VersioningConfiguration:
         Status: Enabled
-      LoggingConfiguration:
-        DestinationBucketName: !Ref S3BucketLogging
-        LogFilePrefix: WebApp
+      #LoggingConfiguration:
+      #  DestinationBucketName: !Ref S3BucketLogging
+      #  LogFilePrefix: WebApp
+
 
   S3HostingBucketPolicy:
       Type: AWS::S3::BucketPolicy
@@ -58,17 +58,72 @@ Resources:
                   - !Ref S3BucketNameWeb
                   - /*
               Principal:
-                CanonicalUser: !GetAtt CloudFrontOriginAccessIdentityWebApp.S3CanonicalUserId
+                CanonicalUser: !GetAtt CloudFrontOriginAccessIdentity.S3CanonicalUserId
 
-  CloudFrontOriginAccessIdentityWebApp:
+    # Configure CloudFront
+  CloudFrontDistributionWebApp:
+    Type: 'AWS::CloudFront::Distribution'
+    Properties:
+      DistributionConfig:
+        CustomErrorResponses:
+          - ErrorCode: 403 
+            ResponseCode: 404
+            ResponsePagePath: 'error.html'
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          # TTL very low for my test
+          DefaultTTL: 10 # in seconds
+          ForwardedValues:
+            Cookies:
+              Forward: none
+            QueryString: false
+          MaxTTL: 20 # in seconds
+          MinTTL: 10 # in seconds
+          TargetOriginId: "S3Origin"
+          ViewerProtocolPolicy: 'allow-all'
+        # This DefaultRootObject configuration is not enough.
+        DefaultRootObject: 'index.html'
+        Comment: "CDN for Micro-WebApp"
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+          - Id: "S3Origin"
+            DomainName: !GetAtt S3BucketWebHelloWorld.DomainName
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
+        PriceClass: PriceClass_100
+        # Use of Iso Code to restrict request from Italy and Malta only
+        # https://www.iso.org/obp/ui/#search/code/
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: whitelist
+            Locations:
+            - IT
+            - MT
+
+
+  CloudFrontOriginAccessIdentity:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
       CloudFrontOriginAccessIdentityConfig:
-        Comment: "CloudFront Origin for access from CloudFront to S3"
+        Comment: !Ref S3BucketWebHelloWorld
+  
 
 Outputs:
   WebSiteUrlWebApp:
-    Description: "URL for website hosted on S3"
-    Value: !GetAtt 
-      - S3BucketNameWeb
-      - WebsiteURL
+    Description: 'URL for website hosted on S3'
+    Value: !GetAtt S3BucketWebHelloWorld.WebsiteURL
+
+  LoggingBucketName:
+    Description: 'Name of the bucket for logging'
+    Value: !Ref S3BucketLogging
+
+  DomainNameBucket:
+    Description: 'Domain Name of the bucket'
+    Value: !GetAtt S3BucketWebHelloWorld.DomainName

@@ -1,0 +1,44 @@
+  # Configure CloudFront
+  CloudFrontDistributionWebApp:
+    Type: 'AWS::CloudFront::Distribution'
+    Properties:
+      DistributionConfig:
+        CustomErrorResponses:
+          - ErrorCode: 403 
+            ResponseCode: 404
+            ResponsePagePath: '/error.html'
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          DefaultTTL: 10 # in seconds
+          ForwardedValues:
+            Cookies:
+              Forward: none
+            QueryString: false
+          MaxTTL: 20 # in seconds
+          MinTTL: 10 # in seconds
+          TargetOriginId: s3origin
+          ViewerProtocolPolicy: 'allow-all'
+        # This DefaultRootObject configuration is not enough.
+        DefaultRootObject: 'index.html'
+        
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+          - DomainName: !GetAtt 'S3Bucket.DomainName'
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentityWebApp}'
+        PriceClass: PriceClass_100
+        # Use of Iso Code to restrict request from Italy and Malta only
+        # https://www.iso.org/obp/ui/#search/code/
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: whitelist
+            Locations:
+            - IT
+            - MT
