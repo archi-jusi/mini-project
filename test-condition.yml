@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      AMI: "ami-0533f2ba8a1995cf9"
+    us-west-1:
+      AMI: "ami-0d712b3e6e1f798ef"
+
+# Input Value
+Parameters:
+  EnvType:
+    Description: Environment type.
+    Default: test
+    Type: String
+    AllowedValues: [prod, dev, test]
+    ConstraintDescription: must specify prod, dev, or test.
+
+Conditions:
+  CreateProdResources: !Equals [!Ref EnvType, "prod"]
+  CreateDevResources: !Equals [!Ref EnvType, "dev"]
+
+Resources:
+  EC2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMI]
+      InstanceType: !If [CreateProdResources, t2.small, !If [CreateDevResources, t2.micro, t2.nano]] 

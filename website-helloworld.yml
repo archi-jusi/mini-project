@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Static Website using cloudfront and S3"
+
+Parameters:
+  S3BucketNameWeb:
+    Type: String
+    Default: "jusi-micro-project"
+    MinLength: 3
+    MaxLength: 63
+
+Resources:
+  S3BucketLogging:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub bucket-${AWS::AccountId}-${AWS::Region}-logging-webapp
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      #VersioningConfiguration:
+      #  Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+
+  S3BucketWebHelloWorld:
+    Type: AWS::S3::Bucket
+    Description: Amazon Bucket to Host our website
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Ref S3BucketNameWeb
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+      VersioningConfiguration:
+        Status: Enabled
+      LoggingConfiguration:
+        DestinationBucketName: !Ref S3BucketLogging
+        LogFilePrefix: WebApp
+
+  S3HostingBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref S3BucketNameWeb
+        PolicyDocument:
+          Statement:
+            - Action:
+                - 's3:GetObject'
+              Effect: Allow
+              Resource: !Join
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref S3BucketNameWeb
+                  - /*
+              Principal:
+                CanonicalUser: !GetAtt CloudFrontOriginAccessIdentityWebApp.S3CanonicalUserId
+
+  CloudFrontOriginAccessIdentityWebApp:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: "CloudFront Origin for access from CloudFront to S3"
+
+Outputs:
+  WebSiteUrlWebApp:
+    Description: "URL for website hosted on S3"
+    Value: !GetAtt 
+      - S3BucketNameWeb
+      - WebsiteURL

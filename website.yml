@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Static Website using cloudfront and S3"
+
+Parameters:
+  S3BucketNameWeb:
+    Type: String
+    Default: "jusi-micro-project"
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9_-]*"
+  Company:
+    Type: String
+    Default: "56bit"
+  ApplicationName:
+    Type: String
+    Default: "mini-project"  
+
+Resources:
+  S3BucketWebHelloWorld:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Ref S3BucketNameWeb
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+      Tags:
+        - Key: Application Name
+          Value: !Ref ApplicationName
+        - Key: Company
+          Value: !Ref Company
+
+  S3HostingBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref S3BucketNameWeb
+        PolicyDocument:
+          Statement:
+            - Action:
+                - 's3:GetObject'
+              Effect: Allow
+              Resource: !Join
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref S3BucketNameWeb
+                  - /*
+              Principal: '*'
+
+WebsiteCloudfront:
+    Type: AWS::CloudFront::Distribution
+    DependsOn:
+    - S3BucketWebHelloWorld
+
+
+Outputs:
+  BucketName:
+    Description: 'S3 Bucket Name'
+    Value: !Ref S3BucketNameWeb
