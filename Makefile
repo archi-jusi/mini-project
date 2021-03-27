@@ -8,7 +8,7 @@ S3BUCKETLOG := bucket-${ACCOUNT}-${REGION}-logging-webapp
 TEMPLATE_FILE := website-helloworld.yml
 ENVIRONMENT := test
 OWNER := jusi
-
+CHANGESETNAME := webapp-change-set
 
 deploy:
 	make lint
@@ -22,6 +22,20 @@ clean:
 	aws s3 rm --recursive "s3://${S3BUCKETLOG}"
 	aws cloudformation delete-stack --stack-name ${STACKNAME}
 	aws cloudformation describe-stacks --stack-name ${STACKNAME}
+
+plan:
+	 aws cloudformation deploy --stack-name ${STACKNAME} --template-file ${TEMPLATE_FILE} --tags environment=${ENVIRONMENT} owner=${OWNER} --no-execute-changeset
+
+destroy: 
+	aws cloudformation delete-change-set --change-set-name ${CHANGESETNAME} \
+    --stack-name ${STACKNAME}
+
+apply:
+	aws cloudformation execute-change-set --change-set-name ${CHANGESETNAME} \
+    --stack-name ${STACKNAME} 
+
+status:
+	aws cloudformation deploy --stack-name ${STACKNAME} --template-file ${TEMPLATE_FILE} --tags environment=${ENVIRONMENT} owner=${OWNER} --no-execute-changeset
 
 output:
 	aws cloudformation describe-stacks --stack-name ${STACKNAME}  
