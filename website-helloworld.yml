@@ -21,8 +21,8 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
-      VersioningConfiguration:
-        Status: Enabled
+      #VersioningConfiguration:
+      #  Status: Enabled
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -43,6 +43,10 @@ Resources:
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
       
       #VersioningConfiguration:
       #  Status: Enabled
@@ -107,14 +111,7 @@ Resources:
               OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
         # less expensive, serve only US, Canada, Mexico, EU and Israel     
         PriceClass: PriceClass_100
-        # Use of Iso Code to restrict request from Italy and Malta only
-        # https://www.iso.org/obp/ui/#search/code/
-        Restrictions:
-          GeoRestriction:
-            RestrictionType: whitelist
-            Locations:
-            - IT
-            - MT
+       
 
   # Cloud Origin Access Identity to only give access to CloudFront to access bucket       
   CloudFrontOriginAccessIdentity:

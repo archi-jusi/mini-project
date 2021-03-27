@@ -1,8 +1,10 @@
 SHELL := /bin/bash
 AWS_PROFILE := 56bit
 STACKNAME := web-hosting-hello-world
+REGION := eu-west-1
+ACCOUNT := 489364105398
 S3BUCKET := jusi-micro-project
-S3BUCKETLOG := bucket-489364105398-us-east-1-logging-webapp
+S3BUCKETLOG := bucket-${ACCOUNT}-${REGION}-logging-webapp
 TEMPLATE_FILE := website-helloworld.yml
 ENVIRONMENT := test
 OWNER := jusi
@@ -22,7 +24,7 @@ clean:
 	aws cloudformation describe-stacks --stack-name ${STACKNAME}
 
 output:
-	aws cloudformation describe-stacks --stack-name ${STACKNAME}  | jq -r '.Stacks[].Outputs'
+	aws cloudformation describe-stacks --stack-name ${STACKNAME}  
 
 debug:
 	aws cloudformation describe-stack-events --stack-name ${STACKNAME} | jq .
@@ -30,7 +32,15 @@ debug:
 trace: 
 	make output
 	make debug
-	aws cloudformation describe-stack-events --stack-name ${STACKNAME}  | jq '.StackEvents[] | select(.ResourceStatus == "CREATE_FAILED" )'
+	aws cloudformation describe-stack-events --stack-name ${STACKNAME}  | jq '.StackEvents[] | select(.ResourceStatus == "CREATE_FAILED")'
 
-lint: 
-	cfn-lint ${TEMPLATE_FILE}	
+error:
+	aws cloudformation describe-stack-events --stack-name ${STACKNAME}  | jq '.StackEvents[] | select(.ResourceStatus == "DELETE_FAILED")'
+	aws cloudformation describe-stack-events --stack-name ${STACKNAME}  | jq '.StackEvents[] | select(.ResourceStatus == "CREATE_FAILED")'
+
+lint:
+	cfn-lint ${TEMPLATE_FILE}
+
+install:
+	@which jq || ( which brew && brew install jq || which apt-get && apt-get install jq || which yum && yum install jq || which choco && choco install jq)
+	@which aws || pip3 install awscli || pip install awscli 
