@@ -111,7 +111,6 @@ Resources:
               OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
         # less expensive, serve only US, Canada, Mexico, EU and Israel     
         PriceClass: PriceClass_100
-       
 
   # Cloud Origin Access Identity to only give access to CloudFront to access bucket       
   CloudFrontOriginAccessIdentity:

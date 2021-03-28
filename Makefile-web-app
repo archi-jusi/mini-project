@@ -1,11 +1,11 @@
 SHELL := /bin/bash
 AWS_PROFILE := 56bit
-STACKNAME := vpc-micro-project
-REGION := eu-west-3
+STACKNAME := web-hosting-hello-world
+REGION := eu-west-1
 ACCOUNT := 489364105398
 S3BUCKET := jusi-micro-project
 S3BUCKETLOG := bucket-${ACCOUNT}-${REGION}-logging-webapp
-TEMPLATE_FILE := micro-project-vpc.yml
+TEMPLATE_FILE := website-helloworld.yml
 ENVIRONMENT := test
 OWNER := jusi
 CHANGESETNAME := webapp-change-set
@@ -14,6 +14,7 @@ deploy:
 	make lint
 	aws cloudformation deploy --stack-name ${STACKNAME} --template-file ${TEMPLATE_FILE} --tags environment=${ENVIRONMENT} owner=${OWNER}
 	aws cloudformation describe-stacks --stack-name ${STACKNAME}
+	aws s3 sync ./ s3://${S3BUCKET} --exclude '*' --include "*.html"
 	make output 
 
 sync:
