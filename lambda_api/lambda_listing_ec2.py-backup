@@ -13,8 +13,8 @@ def lambda_handler(event, context):
     print(event)
     
     if event['region']:
-        region = event['region']
-        ec2 = boto3.client('ec2', region)
+        regionparameter = event['region']
+        ec2 = boto3.client('ec2', regionparameter)
         response = ec2.describe_instances()
         json_object = json.dumps(response, indent = 2,default = myconverter)
         

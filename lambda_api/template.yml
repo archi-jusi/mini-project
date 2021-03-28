@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  An AWS Serverless template for deploying python function to get list of EC2 from the current Region
+  to Lambda and configure API and Permission
+
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  FunctionListingEC2:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: listec2/
+      Handler: lambda_listing_ec2.lambda_handler
+      Runtime: python3.8
+      MemorySize: 128
+      Events:
+        ListEC2Api:
+          Type: Api
+          Properties:
+            Path: /listec2
+            Method: GET
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonEC2ReadOnlyAccess
+  PermissionListingEC2Role:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt FunctionListingEC2.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*/*/*
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  ListingEC2Api:
+    Description: "API Gateway endpoint URL for Prod stage for Ec2 listing function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/listec2/"
+  ListingEC2Function:
+    Description: "Listing EC2 Lambda Function ARN"
+    Value: !GetAtt FunctionListingEC2.Arn
+  ListingEC2FunctionIamRole:
+    Description: "Implicit IAM Role created for EC2 Lambda function"
+    Value: !Ref PermissionListingEC2Role
+    

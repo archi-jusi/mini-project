@@ -1,0 +1,10 @@
+version = 0.1
+[56bit]
+[56bit.deploy]
+[56bit.deploy.parameters]
+stack_name = "ListingEC2-API-Lambda-Test"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1pta9qm5f061s"
+s3_prefix = "ListingEC2-API-Lambda-Test"
+region = "eu-west-3"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
