@@ -1,0 +1,20 @@
+ Environment:
+    Description: "Environment Name for Tagging"
+    Type: String
+    Default: "Test"
+    AllowedValues:
+      - "Dev"
+      - "Test"
+      - "Staging"
+      - "QA"
+      - "Prod"
+
+  Owner:
+    Description: "Owner of the project"
+    Type: String
+    Default: "jusi"
+
+  Project:
+    Description: "Project Name for tagging"
+    Type: String
+    Default: "micro-project"
