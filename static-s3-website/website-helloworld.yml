@@ -4,10 +4,9 @@ Description: "Static Website using cloudfront and S3"
 Parameters:
   S3BucketNameWeb:
     Type: String
-    Default: "jusi-micro-project"
+    Default: "static-web-hello-world-micro-project"
     MinLength: 3
     MaxLength: 63
-    
 
 Resources:
   S3BucketLogging:
@@ -15,12 +14,7 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       BucketName: !Sub bucket-${AWS::AccountId}-${AWS::Region}-logging-webapp
-      AccessControl: Private
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
+      AccessControl: PublicRead
       #VersioningConfiguration:
       #  Status: Enabled
       BucketEncryption:
@@ -28,7 +22,7 @@ Resources:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
     
-
+# https://aws.amazon.com/premiumsupport/knowledge-center/s3-website-cloudfront-error-403/
   S3BucketWebHelloWorld:
     Type: AWS::S3::Bucket
     DeletionPolicy: Delete
@@ -36,7 +30,7 @@ Resources:
       BucketName: !Ref S3BucketNameWeb
       AccessControl: Private
       PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
+        BlockPublicAcls: false
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
@@ -50,7 +44,6 @@ Resources:
       
       #VersioningConfiguration:
       #  Status: Enabled
-
 
   S3HostingBucketPolicy:
       Type: AWS::S3::BucketPolicy
@@ -87,15 +80,15 @@ Resources:
             - HEAD
           Compress: true
           # TTL very low for testing purpose
-          DefaultTTL: 10 # in seconds
+          DefaultTTL: 30 # in seconds
           ForwardedValues:
             Cookies:
               Forward: none
             QueryString: false
-          MaxTTL: 20 # in seconds
-          MinTTL: 10 # in seconds
-          TargetOriginId: "S3Origin"
-          ViewerProtocolPolicy: 'allow-all'
+          MaxTTL: 40 # in seconds
+          MinTTL: 20 # in seconds
+          TargetOriginId: S3-private-bucket
+          ViewerProtocolPolicy: "redirect-to-https"
         # This DefaultRootObject configuration is not enough.
         DefaultRootObject: 'index.html'
         Comment: "CDN for Micro-WebApp"
@@ -104,8 +97,10 @@ Resources:
           Prefix: "cloudfront-webapp"
         Enabled: true
         HttpVersion: http2
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
         Origins:
-          - Id: "S3Origin"
+          - Id: S3-private-bucket
             DomainName: !GetAtt S3BucketWebHelloWorld.DomainName
             S3OriginConfig:
               OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}'
@@ -117,8 +112,8 @@ Resources:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
       CloudFrontOriginAccessIdentityConfig:
-        Comment: !Ref S3BucketWebHelloWorld
-  
+        Comment: 'origin identity s3 webapp'
+
 Outputs:
   WebSiteUrlWebApp:
     Description: 'URL for website hosted on S3 - to test permission - only access from Origin'

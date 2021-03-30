@@ -1,0 +1,144 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Template to create a VPC with 2 public and private subnet using AZ a and b accordingly"
+Parameters:
+  VpcCidr:
+    Description: CIDR block for the main VPC
+    Type: String
+    Default: 10.0.0.0/16
+
+  Public1ACidr:
+    Description: CIDR block for Public Subnet 1
+    Type: String
+    Default: 10.0.1.0/24
+  
+  Public1BCidr:
+    Description: CIDR block for Public Subnet 2
+    Type: String
+    Default: 10.0.2.0/24
+
+  Private1ACidr:
+    Description: CIDR block for Private Subnet 1
+    Type: String
+    Default: 10.0.3.0/24
+
+  Private1BCidr:
+    Description: CIDR block for Private Subnet 2
+    Type: String
+    Default: 10.0.4.0/24
+  
+Resources:
+  PublicVpc:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: !Ref 'VpcCidr'
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+    
+  Public1A:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PublicVpc
+      CidrBlock: !Ref 'Public1ACidr'
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: subnet1A-public-LB
+
+  Public1B:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PublicVpc
+      CidrBlock: !Ref 'Public1BCidr'
+      AvailabilityZone: !Select 
+        - 1
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: subnet1B-public-LB
+
+  Private1A:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PublicVpc
+      CidrBlock: !Ref 'Private1ACidr'
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: subnet1A-private
+
+  Private1B:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PublicVpc
+      CidrBlock: !Ref 'Private1BCidr'
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: subnet1A-private
+
+  InternetGatewayPrivate:
+    Type: AWS::EC2::InternetGateway
+    
+  Gateway1:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref PublicVpc
+      InternetGatewayId: !Ref InternetGatewayPrivate
+    
+  PublicSubnetRoute:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PublicVpc
+      Tags: 
+        - Key: Name
+          Value: Public-Route
+  
+  PrivateSubnetRoute:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PublicVpc
+      Tags:
+        - Key: Name
+          Value: Public-Route
+
+  SubnetRoutePublic1A:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Public1A
+      RouteTableId: !Ref PublicSubnetRoute
+  
+  SubnetRoutePublic1B:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Public1B
+      RouteTableId: !Ref PublicSubnetRoute
+    
+  SubnetRoutePrivate1A:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Private1A
+      RouteTableId: !Ref PrivateSubnetRoute
+
+  SubnetRoutePrivate1B:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Private1B
+      RouteTableId: !Ref PrivateSubnetRoute
+
+  #Assign routing rule to route tables (default rule does not need to be assigned)
+  PublicRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref PublicSubnetRoute
+      GatewayId: !Ref InternetGatewayPrivate
+
+
+

@@ -1,9 +1,9 @@
 SHELL := /bin/bash
 AWS_PROFILE := 56bit
 STACKNAME := web-hosting-hello-world
-REGION := eu-west-1
+REGION := eu-west-3
 ACCOUNT := 489364105398
-S3BUCKET := jusi-micro-project
+S3BUCKET := static-web-hello-world-micro-project
 S3BUCKETLOG := bucket-${ACCOUNT}-${REGION}-logging-webapp
 TEMPLATE_FILE := website-helloworld.yml
 ENVIRONMENT := test

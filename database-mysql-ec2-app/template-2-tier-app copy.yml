@@ -57,8 +57,6 @@ Parameters:
     AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
     ConstraintDescription: must begin with a letter and contain only alphanumeric
       characters.
-
-  
   # replace with parameter store if time
   DBUser:
     NoEcho: 'true'
@@ -72,9 +70,12 @@ Parameters:
   
   DBPassword:
     NoEcho: 'true'
-    Description: "The database admin account password store in Parameter Store"
-    Type: "AWS::SSM::Parameter::Value<String>"
-    
+    Description: The database admin account password
+    Type: String
+    MinLength: '1'
+    MaxLength: '41'
+    AllowedPattern: '[a-zA-Z0-9]+'
+    ConstraintDescription: must contain only alphanumeric characters.
 
   MultiAZ:
     Description: Multi-AZ master database
@@ -82,33 +83,6 @@ Parameters:
     Default: 'false'
     AllowedValues: ['true', 'false']
     ConstraintDescription: must be true or false.
-
-  ReplicaDBCondition:
-    Description: ReplicaDB database
-    Type: String
-    Default: 'false'
-    AllowedValues: ['true', 'false']
-    ConstraintDescription: must be true or false
-
-  DeployDBCondition:
-    Description: ReplicaDB database
-    Type: String
-    Default: 'false'
-    AllowedValues: ['true', 'false']
-    ConstraintDescription: must be true or false
-
-Conditions:
-  Deploy-ReplicaDB: !Equals
-    - !Ref ReplicaDBCondition
-    - true
-  # If only need to deploy DB For testing purpose
-  Deploy-MasterDB: !Equals
-    - !Ref DeployDBCondition
-    - true
-
-  Deploy-All-DB: !And
-    - !Condition Deploy-MasterDB
-    - !Condition Deploy-ReplicaDB
 
 Resources:
   EC2Instance:
@@ -119,28 +93,25 @@ Resources:
       KeyName: !Ref 'KeyName'
       ImageId: !Ref 'LatestAmiId'
       UserData:
-        !Base64 |
-          #cloud-config
-          write_files:
-            - path: test.txt
-              content: "97LEDKYGOF6C56Q4GYR"
-          #write_files:
-          #  - !Join
-          #  - ''
-          #  - - path: db.txt
-          #    - !GetAtt [MasterDB, Endpoint.Address]
-          yum_repos:
-            mariadb:
-              baseurl: http://yum.mariadb.org/10.5/centos7-amd64
-              gpgkey: https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
-              gpgcheck: true
-              enabled: true
-              name: Package for MariaDB - fork Mysql
-          package_update: true
-          package_upgrade: true
-          package_reboot_if_required: true
-          packages:
-            - MariaDB-client
+        Fn::Base64:
+          !Join:
+          - ""
+          - "#cloud-config"
+          - write_files:
+          - - path: test.txt
+            - content: "97LEDKYGOF6C56Q4GYR"
+          - yum_repos:
+          - mariadb:
+            - baseurl: http://yum.mariadb.org/10.5/centos7-amd64
+            - gpgkey: https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+            - gpgcheck: true
+            - enabled: true
+            - name: Package for MariaDB - fork Mysql
+          - package_update: true
+          - package_upgrade: true
+          - package_reboot_if_required: true
+          - packages:
+          - - MariaDB-client
       Tags:
         -
           Key: Name
@@ -158,7 +129,6 @@ Resources:
 
   DBEC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Condition: Deploy-MasterDB
     Properties:
       GroupDescription: Open database for access from the Instance Only
       SecurityGroupIngress:
@@ -169,7 +139,6 @@ Resources:
   
   MasterDB:
     Type: AWS::RDS::DBInstance
-    Condition: Deploy-MasterDB
     Properties:
       DBName: !Ref 'DBName'
       AllocatedStorage: !Ref 'DBAllocatedStorage'
@@ -186,7 +155,6 @@ Resources:
 
   ReplicaDB:
     Type: AWS::RDS::DBInstance
-    Condition: Deploy-All-DB
     Properties:
       SourceDBInstanceIdentifier: !Ref 'MasterDB'
       DBInstanceClass: !Ref 'InstanceTypeDB'
@@ -209,12 +177,10 @@ Outputs:
     Value: !GetAtt [EC2Instance, PublicIp]
   MasterEndpointAddress:
     Description: Endpoint to connect to Master
-    Value: !GetAtt [MasterDB, Endpoint.Address]
-    Condition: Deploy-All-DB
+    Value: !GetAtt [MasterDB, Endpoint.Address] 
   DatabaseName:
     Description: Name of the Database
     Value: !Ref 'DBName'
   ReplicaEndpointAddress:
     Description: Endpoint to connect to Replica DB
     Value: !GetAtt [ReplicaDB, Endpoint.Address]
-    Condition: Deploy-ReplicaDB
