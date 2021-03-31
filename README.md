@@ -1,6 +1,8 @@
 # Fun Mini-Projects
 
-This repository contains 4 small projects to deployed infrastructure as code on AWS using cloudformation, bash or python.
+This repository contains 4 small fun projects to deployed infrastructure as code on AWS using cloudformation, bash or python.
+
+![fun project meme](https://github.com/archi-jusi/mini-project/blob/main/img/projectfunmeme.jpg)
 
 ## General requirements
 
@@ -78,7 +80,10 @@ Host a simple API, using any technology you wish. The API should return a list o
 
 Everything is deployed using SAM (AWS Serverless Application Model) which is basically an extension of Cloudformation.
 
-Sam is really awesome! All the explanation is in the file README.md in the associate directory for this project (project2-lambda_api).
+Sam is really awesome! 
+
+
+All the explanation is in the file README.md in the associate directory for this project (project2-lambda_api).
 
 To get the list of EC2 instance in the current region, I'm using Lambda and Python. We can use jq to parse the json result.
 
@@ -90,6 +95,9 @@ The SAM Template will create a changeset and deploy:
 - AWS::ApiGateway::Deployment
 - AWS::ApiGateway::Stage
 - AWS::ApiGateway::RestApi
+
+![Sam change set](https://github.com/archi-jusi/mini-project/blob/main/img/AWS_sam_deploy_lambda_api.png)
+
 
 ### Project 3 
 
