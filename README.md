@@ -22,6 +22,14 @@ The bucket is encrypted and versioned.
 
 Use of GNU MakeFile and aws CLI to deploy/debug/destroy faster, to pass the password securely and not put in file, you can use environment variable or variable as a parameter during the command (Don't forget to indent the command as it will not be written in your bash_history ).
 
+Before deploying, I'm using cfn-lint to check cloudformation syntax, you can use this command to install what you need:
+
+```bash
+make install
+```
+
+Note: I'm using the MakeFile on MacOs, everything will work on Linux but you will need to make few change in case of windows.
+
 A Password is written in the MakeFile **only** for testing purpose.
 
 ```bash
@@ -29,6 +37,26 @@ A Password is written in the MakeFile **only** for testing purpose.
 make plan
 make clean -i 
 ```
+
+e.g. for make deploy
+
+```bash
+
+deploy:
+	make lint
+	aws ec2 describe-key-pairs --key-name ${KEYPAIRNAME} || (aws ec2 create-key-pair --key-name ${KEYPAIRNAME} --query "KeyMaterial" --output text > ${KEYPAIRNAME}.pem && chmod 400 ${KEYPAIRNAME}.pem)
+	aws cloudformation deploy --stack-name ${STACKNAME} --template-file ${TEMPLATE_FILE} --parameter-overrides KeyName=${KEYPAIRNAME} InstanceTypeEC2=${InstanceTypeEC2} SSHLocation="${SSHLocation}" DBUser="jusi" DBPassword=${DBPASSWORD} --tags environment=${ENVIRONMENT} owner=${OWNER}
+	make output
+
+lint:
+	cfn-lint ${TEMPLATE_FILE}
+
+output:
+	aws cloudformation describe-stacks --stack-name ${STACKNAME}
+
+```
+
+
 
 The SSH Key pair is created using AWS CLI in the MakeFile process as below:
 
