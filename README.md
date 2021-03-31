@@ -140,7 +140,7 @@ I had to decide between redundancy and autoscaling for EC2 and security and cost
 The EC2 instance will use parameter store to get the latest AMI Amazon Linux 2 in the region where it will be deployed.
 
 
-### Improvement to do: ✔️
+### Improvement to do: ✔️ <a name="Improvement"></a>
 
 Project 1:
 

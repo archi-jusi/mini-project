@@ -379,7 +379,6 @@ Resources:
       SourceDBInstanceIdentifier: !Ref 'MasterDB'
       DBInstanceClass: !Ref 'InstanceTypeDB'
       SourceRegion: !Ref 'AWS::Region'
-      DBSubnetGroupName: !Ref DBSubnetGroup
       VPCSecurityGroups: 
         - !GetAtt [DBEC2SecurityGroup, GroupId]
       Tags:
