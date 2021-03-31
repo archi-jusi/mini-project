@@ -6,6 +6,7 @@
 ## Project 1:
 
 ### Description
+
 Host a simple "Hello World" HTML page. This page should be fronted by an AWS Cloudfront distribution.
 
 ### Explanation:
@@ -15,10 +16,29 @@ The bucket is encrypted using SS3 and versioned.
 
 The user can connect to the website only from the cloudfront URL and not directly on the bucket using Origin Access Identity (OAI).
 
-There is another bucket to log all the request from the cloudfront.
+There is another bucket which is logging all the requests from the cloudfront.
+
 The bucket is encrypted and versioned.
 
-Use of a MakeFile and aws CLI to deploy/debug/destroy faster.
+Use of GNU MakeFile and aws CLI to deploy/debug/destroy faster, to pass the password securely and not put in file, you can use environment variable or variable as a parameter during the command (Don't forget to indent the command as it will not be written in your bash_history ).
+
+A Password is written in the MakeFile **only** for testing purpose.
+
+```bash
+ make deploy DBPASSWORD="dejkvreukvberviue"
+make plan
+make clean -i 
+```
+
+The SSH Key pair is created using AWS CLI in the MakeFile process as below:
+
+```bash
+
+deploy
+
+aws ec2 describe-key-pairs --key-name ${KEYPAIRNAME} || (aws ec2 create-key-pair --key-name ${KEYPAIRNAME} --query "KeyMaterial" --output text > ${KEYPAIRNAME}.pem && chmod 400 ${KEYPAIRNAME}.pem)
+```
+
 
 ## Project 2:
 

@@ -12,12 +12,16 @@ KEYPAIRNAME := db-ec2-micro-project-key-pair
 InstanceTypeEC2 := t2.nano
 SSHLocation := 0.0.0.0/0
 AMIID := ami-0575fc648136871a1
+DBPASSWORD := dehiuezhvZOCKozp
 
 deploy:
 	#make lint
 	aws ec2 describe-key-pairs --key-name ${KEYPAIRNAME} || (aws ec2 create-key-pair --key-name ${KEYPAIRNAME} --query "KeyMaterial" --output text > ${KEYPAIRNAME}.pem && chmod 400 ${KEYPAIRNAME}.pem)
-	aws cloudformation deploy --stack-name ${STACKNAME} --template-file ${TEMPLATE_FILE} --parameter-overrides KeyName=${KEYPAIRNAME} InstanceTypeEC2=${InstanceTypeEC2} SSHLocation="${SSHLocation}" DBUser="jusi" DBPassword="dehiuezhvZOCKozp" --tags environment=${ENVIRONMENT} owner=${OWNER}
+	aws cloudformation deploy --stack-name ${STACKNAME} --template-file ${TEMPLATE_FILE} --parameter-overrides KeyName=${KEYPAIRNAME} InstanceTypeEC2=${InstanceTypeEC2} SSHLocation="${SSHLocation}" DBUser="jusi" DBPassword=${DBPASSWORD} --tags environment=${ENVIRONMENT} owner=${OWNER}
 	make output
+
+test:
+	echo ${DBPASSWORD} 
 
 
 clean:
@@ -27,9 +31,10 @@ clean:
 	aws cloudformation describe-stacks --stack-name ${STACKNAME}
 
 pre:
-	aws ec2 describe-key-pairs --key-name ${KEYPAIRNAME} || aws ec2 create-key-pair --key-name ${KEYPAIRNAME} --query "KeyMaterial" --output text > ${KEYPAIRNAME}.pem && chmod 400 ${KEYPAIRNAME}.pem
+	aws ec2 describe-key-pairs --key-name ${KEYPAIRNAME} || (aws ec2 create-key-pair --key-name ${KEYPAIRNAME} --query "KeyMaterial" --output text > ${KEYPAIRNAME}.pem && chmod 400 ${KEYPAIRNAME}.pem)
 
 plan:
+	make pre
 	aws cloudformation deploy --stack-name ${STACKNAME} --template-file ${TEMPLATE_FILE} --parameter-overrides KeyName=${KEYPAIRNAME} InstanceTypeEC2=${InstanceTypeEC2} SSHLocation="${SSHLocation}" DBUser="jusi" DBPassword="dehiuezhvZOCKozp" --tags environment=${ENVIRONMENT} owner=${OWNER} --no-execute-changeset
 
 destroy: 

@@ -1,10 +1,43 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >
-  Create an Amazon EC2 instance and a Mysql DB. The AMI is chosen based
-  on the region in which the stack is run. A Read Replica is created automatically and
+  The template will create a new VPC with 2 public and 3 private subnets.
+  Then, the template will create an Amazon EC2 instance and a Mysql DB. The AMI is chosen based
+  on the region in which the stack is run. A Read Replica is created and
   a MultiAZ can be created optionally.
 
 Parameters:
+  #Parameter for VPC and Subnet
+
+  VpcCidr:
+    Description: CIDR block for the main VPC
+    Type: String
+    Default: 10.0.0.0/16
+
+  Public1ACidr:
+    Description: CIDR block for Public Subnet 1
+    Type: String
+    Default: 10.0.1.0/24
+  
+  Public1BCidr:
+    Description: CIDR block for Public Subnet 2
+    Type: String
+    Default: 10.0.2.0/24
+
+  Private1ACidr:
+    Description: CIDR block for Private Subnet 1
+    Type: String
+    Default: 10.0.3.0/24
+
+  Private1BCidr:
+    Description: CIDR block for Private Subnet 2
+    Type: String
+    Default: 10.0.4.0/24
+  
+  Private1CCidr:
+    Description: CIDR block for Private Subnet 2
+    Type: String
+    Default: 10.0.5.0/24
+
   #Parameter for EC2 Instance
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
@@ -74,7 +107,7 @@ Parameters:
     NoEcho: 'true'
     Description: "The database admin account password"
     Type: String
-    MinLength: '1'
+    MinLength: '8'
     MaxLength: '41'
     AllowedPattern: '[a-zA-Z0-9]+'
     ConstraintDescription: must contain only alphanumeric characters.
@@ -82,7 +115,7 @@ Parameters:
   MultiAZ:
     Description: Multi-AZ master database
     Type: String
-    Default: 'false'
+    Default: 'true'
     AllowedValues: ['true', 'false']
     ConstraintDescription: must be true or false.
 
@@ -92,35 +125,157 @@ Parameters:
     Default: 'false'
     AllowedValues: ['true', 'false']
     ConstraintDescription: must be true or false
-# To change to deploy DB
-  DeployDBCondition:
-    Description: Master database
-    Type: String
-    Default: 'true'
-    AllowedValues: ['true', 'false']
-    ConstraintDescription: must be true or false
 
 Conditions:
   Deploy-ReplicaDB: !Equals
     - !Ref ReplicaDBCondition
     - true
-  # If only need to deploy DB For testing purpose
-  Deploy-MasterDB: !Equals
-    - !Ref DeployDBCondition
-    - true
-
-  Deploy-All-DB: !And
-    - !Condition Deploy-MasterDB
-    - !Condition Deploy-ReplicaDB
 
 Resources:
+# New vpc and 2 subnet public for the EC2 and private for the DB, route, IGW and GW
+  PublicVpc:
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: !Ref 'VpcCidr'
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+    
+  Public1A:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PublicVpc
+      MapPublicIpOnLaunch: true
+      CidrBlock: !Ref 'Public1ACidr'
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: subnet1A-public-LB
+
+  Public1B:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PublicVpc
+      MapPublicIpOnLaunch: true
+      CidrBlock: !Ref 'Public1BCidr'
+      AvailabilityZone: !Select 
+        - 1
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: subnet1B-public-LB
+
+  Private1A:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PublicVpc
+      CidrBlock: !Ref 'Private1ACidr'
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: subnet1A-private
+
+  Private1B:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PublicVpc
+      CidrBlock: !Ref 'Private1BCidr'
+      AvailabilityZone: !Select 
+        - 1
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: subnet1B-private
+
+    
+  Private1C:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PublicVpc
+      CidrBlock: !Ref 'Private1CCidr'
+      AvailabilityZone: !Select
+        - 2
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: subnet1C-private
+
+  InternetGatewayPrivate:
+    Type: AWS::EC2::InternetGateway
+    
+  Gateway1:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref PublicVpc
+      InternetGatewayId: !Ref InternetGatewayPrivate
+    
+  PublicSubnetRoute:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PublicVpc
+      Tags: 
+        - Key: Name
+          Value: Public-Route
+  
+  PrivateSubnetRoute:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PublicVpc
+      Tags:
+        - Key: Name
+          Value: Public-Route
+
+  SubnetRoutePublic1A:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Public1A
+      RouteTableId: !Ref PublicSubnetRoute
+  
+  SubnetRoutePublic1B:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Public1B
+      RouteTableId: !Ref PublicSubnetRoute
+    
+  SubnetRoutePrivate1A:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Private1A
+      RouteTableId: !Ref PrivateSubnetRoute
+
+  SubnetRoutePrivate1B:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Private1B
+      RouteTableId: !Ref PrivateSubnetRoute
+
+  SubnetRoutePrivate1C:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Private1C
+      RouteTableId: !Ref PrivateSubnetRoute    
+
+  #Assign routing rule to route tables (default rule does not need to be assigned)
+  PublicRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref PublicSubnetRoute
+      GatewayId: !Ref InternetGatewayPrivate
+
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-instance.html
   EC2Instance:
     Type: AWS::EC2::Instance
     DependsOn: MasterDB
     Properties:
       InstanceType: !Ref 'InstanceTypeEC2'
-      SecurityGroups: [!Ref 'InstanceSecurityGroupEC2']
+      # if any issue with az-a within the region change to az b
+      SubnetId: !Ref Public1A
+      SecurityGroupIds: [!GetAtt [InstanceSecurityGroupEC2, GroupId]]
       KeyName: !Ref 'KeyName'
       ImageId: !Ref 'LatestAmiId'
       UserData:
@@ -157,33 +312,47 @@ Resources:
           Key: Name
           Value: !Sub '${AWS::StackName}-ec2'
     
-
   InstanceSecurityGroupEC2:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Enable SSH access via port 22
+      VpcId: !Ref PublicVpc
       SecurityGroupIngress:
       - IpProtocol: tcp
         FromPort: 22
         ToPort: 22
         CidrIp: !Ref 'SSHLocation'
-
+      
   DBEC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Condition: Deploy-MasterDB
     Properties:
       GroupDescription: Open database for access from the Instance Only
+      VpcId: !Ref PublicVpc
       SecurityGroupIngress:
       - IpProtocol: tcp
         FromPort: 3306
         ToPort: 3306
-        SourceSecurityGroupName: !Ref 'InstanceSecurityGroupEC2'
+        SourceSecurityGroupId: !GetAtt [InstanceSecurityGroupEC2, GroupId]
+
+  DBSubnetGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties: 
+      DBSubnetGroupDescription: Subnet group containing the 2 private subnets
+      SubnetIds: 
+        - !Ref Private1A
+        - !Ref Private1B
+        - !Ref Private1C
+      Tags: 
+        - 
+          Key: Name
+          Value: GroupSubnetPrivateRDS
   
   MasterDB:
     Type: AWS::RDS::DBInstance
-    Condition: Deploy-MasterDB
     Properties:
+      DBInstanceIdentifier: master-db-microproject-jusi
       DBName: !Ref 'DBName'
+      StorageType: gp2
       AllocatedStorage: !Ref 'DBAllocatedStorage'
       DBInstanceClass: !Ref 'InstanceTypeDB'
       Engine: MySQL
@@ -191,18 +360,29 @@ Resources:
       # require access on parameter store on parameter 
       MasterUserPassword: !Ref 'DBPassword'
       MultiAZ: !Ref 'MultiAZ'
+      BackupRetentionPeriod: 7
+      PubliclyAccessible: false
+      DBSubnetGroupName: !Ref DBSubnetGroup
       Tags:
       - Key: Name
         Value: Master Database
       VPCSecurityGroups: 
         - !GetAtt [DBEC2SecurityGroup, GroupId]
+      EnablePerformanceInsights: true
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+
 
   ReplicaDB:
     Type: AWS::RDS::DBInstance
-    Condition: Deploy-All-DB
+    Condition: Deploy-ReplicaDB
     Properties:
       SourceDBInstanceIdentifier: !Ref 'MasterDB'
       DBInstanceClass: !Ref 'InstanceTypeDB'
+      SourceRegion: !Ref 'AWS::Region'
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups: 
+        - !GetAtt [DBEC2SecurityGroup, GroupId]
       Tags:
       - Key: Name
         Value: Read Replica SuperDB
@@ -223,7 +403,6 @@ Outputs:
   MasterEndpointAddress:
     Description: Endpoint to connect to Master
     Value: !GetAtt [MasterDB, Endpoint.Address]
-    #Condition: Deploy-MasterDB
   DatabaseName:
     Description: Name of the Database
     Value: !Ref 'DBName'
