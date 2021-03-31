@@ -13,7 +13,7 @@ This repository contains 4 small projects to deployed infrastructure as code on 
 
 Host a simple "Hello World" HTML page. This page should be fronted by an AWS Cloudfront distribution.
 
-### Explanation:
+### Explanation: 📝
 
 The static web site is hosted on S3. 
 The bucket is encrypted using SS3.
@@ -74,7 +74,7 @@ aws ec2 describe-key-pairs --key-name ${KEYPAIRNAME} || (aws ec2 create-key-pair
 
 Host a simple API, using any technology you wish. The API should return a list of EC2 instances in the region of your choice by querying the EC2 API, when doing a GET request through Postman. No authentication or authorization is required (i.e. can be open to the public Internet). Kindly forward the URL to us.
 
-### Explanation
+### Explanation 📝
 
 Everything is deployed using SAM (AWS Serverless Application Model) which is basically an extension of Cloudformation.
 
@@ -107,7 +107,7 @@ check below
     * Create a file called test.txt with the value 97LEDKYGOF6C56Q4GYR. This file should be created in the OS root (/) OK
     * Connect to the database created above and create a table called "CandidateTest". Kindly forward the RDS master password to us.
 
-Explanation:
+### Explanation:📝
 
 I've decided to put the project 3 and 4 in the same Cloudformation Template as it's like a 2-tier project and they are working together. A new VPC is created for this project with 2 public subnets and 3 private subnets.
 
@@ -125,7 +125,7 @@ I had to decide between redundancy and autoscaling for EC2 and security and cost
 
 The EC2 instance will use parameter store to get the latest AMI Amazon Linux 2 in the region where it will be deployed.
 
-Improvement to do:
+### Improvement to do: ✔️
 
 Project 1:
 - Set versioning on the bucket and create a python script to empty the bucket
@@ -141,6 +141,13 @@ Project 3 & 4:
 -  Add monitoring
 -  Add backup for the EC2 - need ? If it's only a bastion host it will go faster to deploy again than restore
 
+### Conclusion
+
+These projects were quite fun to do, the most tricky part for me was the connect to the DB from the EC2 instance without keeping any trace of credentials.
+
+Another thing that was taking me time was the first project as deploying/destroying with cloudfront can take 30-45 minutes ! ⏱️
+
+I was getting frustrated about some limitation of Cloudformation that I can easily done with Terraform and in the opposite I was really surprise by the power of SAM ! 🔥🤗
 
 
 

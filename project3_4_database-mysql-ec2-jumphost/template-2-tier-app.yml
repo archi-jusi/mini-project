@@ -122,7 +122,7 @@ Parameters:
   ReplicaDBCondition:
     Description: ReplicaDB database
     Type: String
-    Default: 'false'
+    Default: 'true'
     AllowedValues: ['true', 'false']
     ConstraintDescription: must be true or false
 
