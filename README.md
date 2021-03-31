@@ -111,9 +111,15 @@ check below
 
 I've decided to put the project 3 and 4 in the same Cloudformation Template as it's like a 2-tier project and they are working together. A new VPC is created for this project with 2 public subnets and 3 private subnets.
 
+There is 2 public subnet to host the EC2 and the EC2 can be rapidly deployed in the second one if any issue on the first AZ.
+
+The 3 private subnet will be for the database and are all part of a RDS subnet group.
+
 The Database can use a Multi-AZ and a replica DB optionally.
 
 As the EC2 instance is like a bastion or Jumphost to manage the Database, I didn't make an ASG and a NLB. 
+
+![Private-db-public-ec2](https://github.com/archi-jusi/mini-project/blob/main/img/project3.png)
 
 The DataBase port (3306) is opened only from the security group of the EC2 instance.
 
@@ -125,12 +131,15 @@ I had to decide between redundancy and autoscaling for EC2 and security and cost
 
 The EC2 instance will use parameter store to get the latest AMI Amazon Linux 2 in the region where it will be deployed.
 
+
 ### Improvement to do: ✔️
 
 Project 1:
+
 - Set versioning on the bucket and create a python script to empty the bucket
 
 Project 2:
+
 - Add parameter to get all ec2 on all region
 
 Project 3 & 4:
@@ -148,12 +157,6 @@ These projects were quite fun to do, the most tricky part for me was the connect
 Another thing that was taking me time was the first project as deploying/destroying with cloudfront can take 30-45 minutes ! ⏱️
 
 I was getting frustrated about some limitation of Cloudformation that I can easily done with Terraform and in the opposite I was really surprise by the power of SAM ! 🔥🤗
-
-
-
-
-
-
 
 
 
