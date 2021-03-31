@@ -160,9 +160,9 @@ Project 3 & 4:
 
 ### Conclusion
 
-These projects were quite fun to do, the most tricky part for me was the connect to the DB from the EC2 instance without keeping any trace of credentials.
+These projects were quite fun to do and I've learned a lot about cloudformation, the most tricky part for me was the connect to the DB from the EC2 instance without keeping any trace of credentials.
 
-Another thing that was taking me time was the first project as deploying/destroying with cloudfront can take 30-45 minutes ! ⏱️
+Another thing that was taking me time and I didn't expected was that few deploiement or destroy of the infrastructure is taking a lot of time like deploying/destroying on cloudfront can take 30-45 minutes and the same for the RDS and replica ! ⏱️
 
 I was getting frustrated about some limitation of Cloudformation that I can easily done with Terraform and in the opposite I was really surprise by the power of SAM ! 🔥🤗
 

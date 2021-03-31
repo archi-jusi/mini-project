@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: >
   The template will create a new VPC with 2 public and 3 private subnets.
   Then, the template will create an Amazon EC2 instance and a Mysql DB. The AMI is chosen based
-  on the region in which the stack is run. A Read Replica is created and
+  on the region in which the stack is run. A Read Replica and
   a MultiAZ can be created optionally.
 
 Parameters:
