@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: 2010-09-09
 Description: "Template to create a VPC with 2 public and private subnet using AZ a and b accordingly"
 Parameters:
   VpcCidr:
@@ -26,6 +26,11 @@ Parameters:
     Type: String
     Default: 10.0.4.0/24
   
+  LatestAmiId:
+    Type:  'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+  
 Resources:
   PublicVpc:
     Type: AWS::EC2::VPC
@@ -39,6 +44,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref PublicVpc
+      MapPublicIpOnLaunch: true
       CidrBlock: !Ref 'Public1ACidr'
       AvailabilityZone: !Select 
         - 0
@@ -51,6 +57,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref PublicVpc
+      MapPublicIpOnLaunch: true
       CidrBlock: !Ref 'Public1BCidr'
       AvailabilityZone: !Select 
         - 1
@@ -140,5 +147,57 @@ Resources:
       RouteTableId: !Ref PublicSubnetRoute
       GatewayId: !Ref InternetGatewayPrivate
 
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-instance.html
 
+  
+  EC2InstancePublic:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.nano
+      # if different vpc -> Use of GetAtt and SecurityGroupIds
+      SecurityGroupIds: [!GetAtt [PublicSecurityGroupEC2, GroupId]]
+      KeyName: test
+      ImageId: !Ref 'LatestAmiId'
+      SubnetId: !Ref Public1A
+      Tags:
+        -
+          Key: Name
+          Value: !Sub '${AWS::StackName}-ec2-testing-vpc-public'
+    
+  
+  PublicSecurityGroupEC2:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable SSH access via port 22
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: "0.0.0.0/0"
+      VpcId: !Ref PublicVpc
+
+  EC2InstancePrivate:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.nano
+      SecurityGroupIds: [!GetAtt [PrivateEC2SecurityGroup, GroupId] ]
+      KeyName: test
+      ImageId: !Ref 'LatestAmiId'
+      SubnetId: !Ref Private1A
+      Tags:
+        -
+          Key: Name
+          Value: !Sub '${AWS::StackName}-ec2-testing-vpc-private'
+# if not default VPC using of ID instead of Name
+  PrivateEC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Open port ssh only from public EC2
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        SourceSecurityGroupId: !GetAtt [PublicSecurityGroupEC2, GroupId]
+      VpcId: !Ref PublicVpc
+      
 

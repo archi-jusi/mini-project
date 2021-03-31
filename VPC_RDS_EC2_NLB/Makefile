@@ -4,13 +4,15 @@ STACKNAME := vpc-ec2-micro-project
 REGION := eu-west-2
 ACCOUNT := 489364105398
 TEMPLATE_FILE := Template_new_vpc_3_tier_app.yml
+KEYPAIRNAME := test
 ENVIRONMENT := test
 OWNER := jusi
 CHANGESETNAME := vpc-micro-project-change-set
 
 deploy:
 	make lint
-	aws --region ${REGION} --region ${REGION} cloudformation deploy --stack-name ${STACKNAME} --template-file ${TEMPLATE_FILE} --tags environment=${ENVIRONMENT} owner=${OWNER} 
+	 aws --region ${REGION} ec2 describe-key-pairs --key-name ${KEYPAIRNAME} || (aws --region ${REGION} ec2 create-key-pair --key-name ${KEYPAIRNAME} --query "KeyMaterial" --output text > ${KEYPAIRNAME}.pem && chmod 400 ${KEYPAIRNAME}.pem)
+	aws --region ${REGION} cloudformation deploy --stack-name ${STACKNAME} --template-file ${TEMPLATE_FILE} --tags environment=${ENVIRONMENT} owner=${OWNER} 
 	make output
 
 
@@ -21,7 +23,7 @@ clean:
 	aws --region ${REGION} cloudformation describe-stacks --stack-name ${STACKNAME}
 
 pre:
-	aws --region ${REGION} ec2 describe-key-pairs --key-name ${KEYPAIRNAME} || aws --region ${REGION} ec2 create-key-pair --key-name ${KEYPAIRNAME} --query "KeyMaterial" --output text > ${KEYPAIRNAME}.pem && chmod 400 ${KEYPAIRNAME}.pem
+	aws --region ${REGION} ec2 describe-key-pairs --key-name ${KEYPAIRNAME} || (aws --region ${REGION} ec2 create-key-pair --key-name ${KEYPAIRNAME} --query "KeyMaterial" --output text > ${KEYPAIRNAME}.pem && chmod 400 ${KEYPAIRNAME}.pem)
 
 plan:
 	# LatestAmiId=${AMIID}

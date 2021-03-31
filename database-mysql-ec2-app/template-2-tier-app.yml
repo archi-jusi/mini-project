@@ -72,9 +72,12 @@ Parameters:
   
   DBPassword:
     NoEcho: 'true'
-    Description: "The database admin account password store in Parameter Store"
-    Type: "AWS::SSM::Parameter::Value<String>"
-    
+    Description: "The database admin account password"
+    Type: String
+    MinLength: '1'
+    MaxLength: '41'
+    AllowedPattern: '[a-zA-Z0-9]+'
+    ConstraintDescription: must contain only alphanumeric characters.
 
   MultiAZ:
     Description: Multi-AZ master database
@@ -89,11 +92,11 @@ Parameters:
     Default: 'false'
     AllowedValues: ['true', 'false']
     ConstraintDescription: must be true or false
-
+# To change to deploy DB
   DeployDBCondition:
-    Description: ReplicaDB database
+    Description: Master database
     Type: String
-    Default: 'false'
+    Default: 'true'
     AllowedValues: ['true', 'false']
     ConstraintDescription: must be true or false
 
@@ -111,40 +114,49 @@ Conditions:
     - !Condition Deploy-ReplicaDB
 
 Resources:
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-instance.html
   EC2Instance:
     Type: AWS::EC2::Instance
+    DependsOn: MasterDB
     Properties:
       InstanceType: !Ref 'InstanceTypeEC2'
       SecurityGroups: [!Ref 'InstanceSecurityGroupEC2']
       KeyName: !Ref 'KeyName'
       ImageId: !Ref 'LatestAmiId'
       UserData:
-        !Base64 |
-          #cloud-config
-          write_files:
-            - path: test.txt
-              content: "97LEDKYGOF6C56Q4GYR"
-          #write_files:
-          #  - !Join
-          #  - ''
-          #  - - path: db.txt
-          #    - !GetAtt [MasterDB, Endpoint.Address]
-          yum_repos:
-            mariadb:
-              baseurl: http://yum.mariadb.org/10.5/centos7-amd64
-              gpgkey: https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
-              gpgcheck: true
-              enabled: true
-              name: Package for MariaDB - fork Mysql
-          package_update: true
-          package_upgrade: true
-          package_reboot_if_required: true
-          packages:
-            - MariaDB-client
+        Fn::Base64: 
+          !Sub |
+            #cloud-config
+            write_files:
+              - path: test.txt
+                content: "97LEDKYGOF6C56Q4GYR"
+            yum_repos:
+              mariadb:
+                baseurl: http://yum.mariadb.org/10.5/centos7-amd64
+                gpgkey: https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+                gpgcheck: true
+                enabled: true
+                name: Package for MariaDB - fork Mysql
+            package_update: true
+            package_upgrade: true
+            package_reboot_if_required: true
+            packages:
+              - MariaDB-client
+
+            runcmd:
+              - echo "[client]" >> "config.cnf"
+              - echo "user=${DBUser}" >> "config.cnf"
+              - echo "password=${DBPassword}" >> "config.cnf"
+              - echo "host=${MasterDB.Endpoint.Address}" >> "config.cnf"
+              - echo "database=${DBName}" >> "config.cnf"
+              - mysql --defaults-file=/config.cnf -e "CREATE TABLE CandidateTest2(description TEXT)"
+              - rm -f config.cnf
+
       Tags:
         -
           Key: Name
           Value: !Sub '${AWS::StackName}-ec2'
+    
 
   InstanceSecurityGroupEC2:
     Type: AWS::EC2::SecurityGroup
@@ -176,6 +188,7 @@ Resources:
       DBInstanceClass: !Ref 'InstanceTypeDB'
       Engine: MySQL
       MasterUsername: !Ref 'DBUser'
+      # require access on parameter store on parameter 
       MasterUserPassword: !Ref 'DBPassword'
       MultiAZ: !Ref 'MultiAZ'
       Tags:
@@ -210,7 +223,7 @@ Outputs:
   MasterEndpointAddress:
     Description: Endpoint to connect to Master
     Value: !GetAtt [MasterDB, Endpoint.Address]
-    Condition: Deploy-All-DB
+    #Condition: Deploy-MasterDB
   DatabaseName:
     Description: Name of the Database
     Value: !Ref 'DBName'

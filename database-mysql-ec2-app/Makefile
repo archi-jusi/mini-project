@@ -14,9 +14,9 @@ SSHLocation := 0.0.0.0/0
 AMIID := ami-0575fc648136871a1
 
 deploy:
-	make lint
-	aws ec2 describe-key-pairs --key-name ${KEYPAIRNAME} || aws ec2 create-key-pair --key-name ${KEYPAIRNAME} --query "KeyMaterial" --output text > ${KEYPAIRNAME}.pem && chmod 400 ${KEYPAIRNAME}.pem
-	aws cloudformation deploy --stack-name ${STACKNAME} --template-file ${TEMPLATE_FILE} --parameter-overrides KeyName=${KEYPAIRNAME} InstanceTypeEC2=${InstanceTypeEC2} SSHLocation="${SSHLocation}" DBUser="jusi" DBPassword="vrovrivnriudDZ" --tags environment=${ENVIRONMENT} owner=${OWNER}
+	#make lint
+	aws ec2 describe-key-pairs --key-name ${KEYPAIRNAME} || (aws ec2 create-key-pair --key-name ${KEYPAIRNAME} --query "KeyMaterial" --output text > ${KEYPAIRNAME}.pem && chmod 400 ${KEYPAIRNAME}.pem)
+	aws cloudformation deploy --stack-name ${STACKNAME} --template-file ${TEMPLATE_FILE} --parameter-overrides KeyName=${KEYPAIRNAME} InstanceTypeEC2=${InstanceTypeEC2} SSHLocation="${SSHLocation}" DBUser="jusi" DBPassword="dehiuezhvZOCKozp" --tags environment=${ENVIRONMENT} owner=${OWNER}
 	make output
 
 
@@ -30,8 +30,7 @@ pre:
 	aws ec2 describe-key-pairs --key-name ${KEYPAIRNAME} || aws ec2 create-key-pair --key-name ${KEYPAIRNAME} --query "KeyMaterial" --output text > ${KEYPAIRNAME}.pem && chmod 400 ${KEYPAIRNAME}.pem
 
 plan:
-	# LatestAmiId=${AMIID}
-	aws cloudformation deploy --stack-name ${STACKNAME} --template-file ${TEMPLATE_FILE} --parameter-overrides KeyName=${KEYPAIRNAME} InstanceTypeEC2=${InstanceTypeEC2} SSHLocation="${SSHLocation}" --tags environment=${ENVIRONMENT} owner=${OWNER} --no-execute-changeset
+	aws cloudformation deploy --stack-name ${STACKNAME} --template-file ${TEMPLATE_FILE} --parameter-overrides KeyName=${KEYPAIRNAME} InstanceTypeEC2=${InstanceTypeEC2} SSHLocation="${SSHLocation}" DBUser="jusi" DBPassword="dehiuezhvZOCKozp" --tags environment=${ENVIRONMENT} owner=${OWNER} --no-execute-changeset
 
 destroy: 
 	aws cloudformation delete-change-set --change-set-name ${CHANGESETNAME} \
@@ -45,11 +44,9 @@ status:
 	aws cloudformation deploy --stack-name ${STACKNAME} --template-file ${TEMPLATE_FILE} --tags environment=${ENVIRONMENT} owner=${OWNER} --no-execute-changeset
 
 output:
-	aws cloudformation describe-stacks --stack-name ${STACKNAME}  
+	aws cloudformation describe-stacks --stack-name ${STACKNAME}
 
-trace: 
-	make output
-	make debug
+trace:
 	aws cloudformation describe-stack-events --stack-name ${STACKNAME}  | jq '.StackEvents[] | select(.ResourceStatus == "CREATE_FAILED")'
 	aws cloudformation describe-stack-events --stack-name ${STACKNAME}  | jq '.StackEvents[] | select(.ResourceStatus == "DELETE_FAILED")'
 
