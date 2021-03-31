@@ -352,7 +352,7 @@ Resources:
     Properties:
       DBInstanceIdentifier: master-db-microproject-jusi
       DBName: !Ref 'DBName'
-      StorageType: gp2
+      StorageType: 'gp2'
       AllocatedStorage: !Ref 'DBAllocatedStorage'
       DBInstanceClass: !Ref 'InstanceTypeDB'
       Engine: MySQL

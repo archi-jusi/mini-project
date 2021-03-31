@@ -1,4 +1,8 @@
-# Mini-Project - General requirements
+# Fun Mini-Projects
+
+This repository contains 4 small projects to deployed infrastructure as code on AWS using cloudformation, bash or python.
+
+## General requirements
 
 -  The below technical requirements need to be implemented using Infrastructure as Code. 
 -  Cloudformation, Python and/or Bash scripting
@@ -12,13 +16,11 @@ Host a simple "Hello World" HTML page. This page should be fronted by an AWS Clo
 ### Explanation:
 
 The static web site is hosted on S3. 
-The bucket is encrypted using SS3 and versioned.
+The bucket is encrypted using SS3.
 
 The user can connect to the website only from the cloudfront URL and not directly on the bucket using Origin Access Identity (OAI).
 
-There is another bucket which is logging all the requests from the cloudfront.
-
-The bucket is encrypted and versioned.
+There is another encrypted bucket which is logging all the requests from the cloudfront.
 
 Use of GNU MakeFile and aws CLI to deploy/debug/destroy faster, to pass the password securely and not put in file, you can use environment variable or variable as a parameter during the command (Don't forget to indent the command as it will not be written in your bash_history ).
 
@@ -30,13 +32,15 @@ make install
 
 Note: I'm using the MakeFile on MacOs, everything will work on Linux but you will need to make few change in case of windows.
 
-A Password is written in the MakeFile **only** for testing purpose.
+:lightbulb: A Password is written in the MakeFile **only** for testing purpose. 
 
 ```bash
  make deploy DBPASSWORD="dejkvreukvberviue"
-make plan
+make plan  <-- Dry-run
 make clean -i 
 ```
+
+If you want to make a changeset (dry-run), use instead **make plan** :smile: but use **make pre** first to create the key pair.
 
 e.g. for make deploy
 
@@ -56,8 +60,6 @@ output:
 
 ```
 
-
-
 The SSH Key pair is created using AWS CLI in the MakeFile process as below:
 
 ```bash
@@ -76,9 +78,9 @@ Host a simple API, using any technology you wish. The API should return a list o
 
 Everything is deployed using SAM (AWS Serverless Application Model) which is basically an extension of Cloudformation.
 
-Sam is really awesome! All the explanation is in a README.md in the associate directory for this project (lambda_api).
+Sam is really awesome! All the explanation is in the file README.md in the associate directory for this project (project2-lambda_api).
 
-To get the list of EC2 instance in the current region, I'm using Lambda and Python. We can use jq to parse the json.
+To get the list of EC2 instance in the current region, I'm using Lambda and Python. We can use jq to parse the json result.
 
 The SAM Template will create a changeset and deploy: 
 
@@ -89,9 +91,13 @@ The SAM Template will create a changeset and deploy:
 - AWS::ApiGateway::Stage
 - AWS::ApiGateway::RestApi
 
-### Project 3 & Project 4
+### Project 3 
 
 Create a small Relational Database Service MySQL instance and database.
+
+check below
+
+### Project 4 
 
 * Create a server with the following specifications:
     * OS: Amazon Linux 2 -> Using Parameter Store native variable
@@ -103,29 +109,37 @@ Create a small Relational Database Service MySQL instance and database.
 
 Explanation:
 
-I've decided to put the project 3 and 4 in the same Cloudformation Template as it's like a 2-tier project and they are working together.
+I've decided to put the project 3 and 4 in the same Cloudformation Template as it's like a 2-tier project and they are working together. A new VPC is created for this project with 2 public subnets and 3 private subnets.
 
 The Database can use a Multi-AZ and a replica DB optionally.
+
 As the EC2 instance is like a bastion or Jumphost to manage the Database, I didn't make an ASG and a NLB. 
 
 The DataBase port (3306) is opened only from the security group of the EC2 instance.
 
-If using a NLB and we want it redundant, it will increase the cost quite a lot so I've decided to make a tradeoff in term of redundancy in favor of cost. This will be different of course follow each case.
+If using a NLB and we want it redundant, it will increase the cost so I've decided to make a tradeoff in term of redundancy in favor of cost and complexity and time. This will be different of course follow each case.
 
 If there is any issue with the EC2 instance, it will be very fast to deployed a new one using the cloudformation template.
-
-On each solution, there is always a tradeoff to do between performance, security, cost and redundancy, and time and complexity to implement. 
 
 I had to decide between redundancy and autoscaling for EC2 and security and cost for all the solution but not only, time to implement and documentation was as well in the balance, I've decided to go for the second one as security should go always first in my opinion.
 
 The EC2 instance will use parameter store to get the latest AMI Amazon Linux 2 in the region where it will be deployed.
 
+Improvement to do:
 
-Improvement if more time to experiment: 
+Project 1:
+- Set versioning on the bucket and create a python script to empty the bucket
+
+Project 2:
+- Add parameter to get all ec2 on all region
+
+Project 3 & 4:
 
 - for the password of the DB -> Use of Secret Manager for rotation password
   - I've tested with Parameter Store and it was working well for the DB but didn't manage to make it work and get the information from the EC2
--  
+-  Encrypted The DB
+-  Add monitoring
+-  Add backup for the EC2 - need ? If it's only a bastion host it will go faster to deploy again than restore
 
 
 
