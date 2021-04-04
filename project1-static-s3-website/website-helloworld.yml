@@ -14,7 +14,12 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       BucketName: !Sub bucket-${AWS::AccountId}-${AWS::Region}-logging-webapp
-      AccessControl: PublicRead
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
       #VersioningConfiguration:
       #  Status: Enabled
       BucketEncryption:
